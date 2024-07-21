@@ -1,8 +1,8 @@
-FROM umihico/aws-lambda-selenium-python:latest
+FROM public.ecr.aws/lambda/python:3.11
 
 COPY requirements.txt ./
 
-RUN echo "nameserver 8.8.8.8" > /etc/resolv.conf && pip install -r requirements.txt -t .
+RUN python3.11 -m pip install -r requirements.txt -t .
 
 COPY src/ ./src/
 

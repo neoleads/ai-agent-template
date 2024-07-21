@@ -3,7 +3,7 @@ from typing import Any
 from langchain_aws import ChatBedrockConverse
 from langchain_openai import ChatOpenAI
 
-from agent.src.schemas import LLMConfig, LLMConnection
+from src.schemas import LLMConfig, LLMConnection
 
 
 def get_llm(config: LLMConfig) -> Any:

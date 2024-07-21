@@ -1,2 +1,4 @@
-requests
-boto3
+requests==2.32.3
+langchain==0.2.10
+langchain-openai==0.1.17
+langchain-aws==0.1.11

@@ -4,14 +4,17 @@ from typing import Any, Dict, Optional
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
-from agent.src.llms import get_llm
-from agent.src.schemas import LambdaResponse, LLMConfig, RequestConfig
+from src.llms import get_llm
+from src.schemas import LambdaResponse, LLMConfig, RequestConfig
 
 output_parser = StrOutputParser()
 
 
 def lambda_handler(event: Optional[Any], context: Optional[Any]) -> LambdaResponse:
-    body: Dict[str, Any] = json.loads(event['body'])
+    try:
+        body: Dict[str, Any] = json.loads(event['body'])
+    except TypeError:
+        body: Dict[str, Any] = event['body']
 
     # get message and history
     history: list = body['history']

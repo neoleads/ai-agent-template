@@ -23,10 +23,8 @@ Resources:
       Policies:
         - Version: '2012-10-17'
           Statement:
-            - Sid: FunctionURLAllowPublicAccess
               Effect: Allow
               Action:
-                - bedrock:InvokeModelWithResponseStream
                 - bedrock:InvokeModel
               Resource: '*'
       Architectures:
@@ -34,14 +32,6 @@ Resources:
     Metadata:
       Dockerfile: Dockerfile
       DockerContext: ./agent
-  AgentURLPublicAccess:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName:
-        Ref: AgentFunction
-      FunctionUrlAuthType: NONE
-      Action: lambda:InvokeFunctionUrl
-      Principal: "*"
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function

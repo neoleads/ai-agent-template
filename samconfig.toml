@@ -17,6 +17,9 @@ capabilities = "CAPABILITY_IAM"
 confirm_changeset = true
 resolve_s3 = true
 resolve_image_repos = true
+stack_name = "ai-agent"
+s3_prefix = "ai-agent"
+region = "ap-south-1"
 
 [default.package.parameters]
 resolve_s3 = true
@@ -29,3 +32,5 @@ warm_containers = "EAGER"
 
 [default.local_start_lambda.parameters]
 warm_containers = "EAGER"
+
+profile = "trygetboarded"
