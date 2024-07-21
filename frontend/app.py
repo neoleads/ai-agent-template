@@ -5,8 +5,7 @@ dotenv.load_dotenv()
 
 import gradio as gr
 
-
-# from agent.app import lambda_handler
+from agent.app import lambda_handler
 
 
 def chat_to_oai_message(chat_history):
@@ -31,23 +30,42 @@ def chat_to_oai_message(chat_history):
     return messages
 
 
-def random_response(message, history):
-    event = {
-        "body": json.dumps({
-            "message": message,
-            "history": chat_to_oai_message(history),
-        })
+def get_response(
+        inputs, system_prompt, user_prompt, history,
+        connection, api_base, api_key, model, temperature,
+        split_type, min_length_output, max_length_output
+):
+    body = {
+        "inputs": {item[0]: item[1] for item in inputs.values},
+        "history": chat_to_oai_message(history),
+        "system_prompt": system_prompt,
+        "user_prompt": user_prompt,
+        "llm_config": {
+            "connection": connection,
+            "api_base": api_base,
+            "api_key": api_key,
+            "model": model,
+            "temperature": temperature,
+        },
+        "config": {
+            "split_type": split_type,
+            "min_length_output": min_length_output,
+            "max_length_output": max_length_output,
+        },
     }
-    response = {"body": json.dumps({"message": "Hello, how can I help you today?"})}
-    return json.loads(response["body"])["message"]
+
+    response = lambda_handler({"body": json.dumps(body)}, None)
+    assistant_message = json.loads(response["body"])["message"]
+    return history + [(user_prompt, assistant_message)]
 
 
 css = """
+.chatbot-area {max-width: 100vw; max-height: 100vh;}
 .logo-img img {width: 100px;}
 .table {overflow: auto;}
 """
 
-with gr.Blocks(css=css) as demo:
+with gr.Blocks(css=css, elem_classes="chatbot-area") as demo:
     with gr.Row():
         with gr.Column(scale=12):
             gr.HTML("<center>"
@@ -58,90 +76,118 @@ with gr.Blocks(css=css) as demo:
     with gr.Row():
         with gr.Column(scale=8):
             chatbot = gr.Chatbot(
-                [],
-                elem_id="chatbot",
-                bubble_full_width=False,
                 avatar_images=("assets/456322.webp", "assets/neoleads-logo.svg"),
-                render=False,
+                show_copy_button=True,
                 height=600,
             )
 
-            txt_input = gr.Textbox(
-                scale=4,
-                show_label=False,
-                placeholder="Enter text and press enter",
-                container=False, render=False,
-                autofocus=True,
-            )
-            gr.ChatInterface(
-                random_response,
-                chatbot=chatbot,
-                textbox=txt_input,
-                examples=[
-                    ["tell me face value of 20 Microns."],
-                    ["Create A Report on 20 Microns."]
-                ],
-            )
+            with gr.Row():
+                with gr.Column(scale=4):
+                    clear = gr.Button("🗑️ Clear All Message", variant='secondary')
+                with gr.Column(scale=4):
+                    submitBtn = gr.Button("\n💬 Send\n", size="lg", variant="primary")
+
         with gr.Column(scale=4):
             with gr.Tab(label="Inputs"):
-                key_value_input = gr.Dataframe(
+                inputs = gr.Dataframe(
                     headers=["Key", "Value"],
                     datatype=["str", "str"],
                     row_count=(1, "dynamic"),  # Start with 1 row, allow dynamic addition
                     col_count=(2, "fixed"),  # Fixed number of columns
                     interactive=True,
-                    label="Create Inputs"
+                    label="Create Inputs",
+                    wrap=True,
+                    value=[["webinar_transcript", "replace with your transcript"]],
                 )
                 gr.Markdown("""In Prompts you can use inputs in {} format.""")
                 system_prompt = gr.Textbox(
                     label="System Prompt",
-                    lines=6
+                    lines=6,
+                    max_lines=10,
+                    interactive=True,
+                    value="""
+                    You are an expert webinar summarizer who distills key learnings from webinar transcripts.
+
+                    Your webinar summaries follow this structure:
+                    
+                    [1-2 sentence overview of webinar topic]
+                    
+                    [Bulleted list of 3-5 key learnings from the webinar]
+                    
+                    [1-2 closing sentences]
+                    """
                 )
                 user_prompt = gr.Textbox(
                     label="User Prompt",
-                    lines=6
+                    lines=6,
+                    max_lines=10,
+                    interactive=True,
+                    value="""Webinar transcript: {webinar_transcript}
+
+                    Write a concise webinar summary focusing on the key learnings from the webinar transcript 
+                    provided. Follow the webinar summary structure outlined above."""
                 )
             with gr.Tab(label="LLM Configuration"):
                 connection = gr.Dropdown(
                     choices=["NVIDIA", "BEDROCK"],
                     label="Connection",
-                    value="BEDROCK"
+                    value="BEDROCK",
+                    interactive=True
                 )
                 api_base = gr.Textbox(
-                    label="API Base"
+                    label="API Base",
+                    interactive=True
                 )
                 api_key = gr.Textbox(
                     label="API Key",
-                    type="password"
+                    type="password",
+                    interactive=True
                 )
                 model = gr.Dropdown(
-                    choices=["meta/llama3-70b-instruct"],
+                    choices=[
+                        "meta/llama3-70b-instruct",
+                        "anthropic.claude-3-sonnet-20240229-v1:0"
+                    ],
                     label="Model",
-                    value="meta/llama3-70b-instruct"
+                    value="anthropic.claude-3-sonnet-20240229-v1:0",
+                    interactive=True
                 )
                 temperature = gr.Slider(
                     minimum=0.1,
                     maximum=1.0,
-                    value=0.30,
+                    value=0.50,
                     step=0.01,
                     interactive=True,
                     label="Temperature",
                 )
-                max_length_tokens = gr.Slider(
-                    minimum=0,
-                    maximum=4096,
-                    value=360,
-                    step=4,
-                    interactive=True,
-                    label="Max Generation Tokens",
-                )
+
+            with gr.Tab(label="Extra Configuration"):
                 split_type = gr.Dropdown(
-                    choices=["Character", "words"],
+                    choices=["character", "word"],
                     label="Connection",
-                    value="Character"
+                    value="character",
+                    interactive=True
+                )
+                min_length_output = gr.Number(
+                    label="Min Length Output",
+                    value=200,
+                    interactive=True
+                )
+                max_length_output = gr.Number(
+                    label="Max Length Output",
+                    value=2500,
+                    interactive=True
                 )
 
-            clear = gr.Button("🗑️ Clear All", variant='secondary')
+    submitBtn.click(
+        get_response,
+        [
+            inputs, system_prompt, user_prompt, chatbot,
+            connection, api_base, api_key, model, temperature,
+            split_type, min_length_output, max_length_output
+        ], chatbot, queue=False)
+
+    clear.click(lambda: None, None, chatbot, queue=False)
 
 if __name__ == "__main__":
     demo.launch()

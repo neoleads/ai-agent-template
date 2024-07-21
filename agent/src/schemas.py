@@ -10,8 +10,8 @@ class LLMConnection(str, Enum):
 
 
 class SplitType(str, Enum):
-    word = "word"
-    char = "char"
+    word = "work"
+    char = "character"
 
 
 class LambdaResponse(TypedDict):
@@ -28,7 +28,6 @@ class LLMConfig(BaseModel):
     api_key: str
     model: str
     temperature: float
-    max_token: int
 
 
 class RequestConfig(BaseModel):
@@ -36,4 +35,5 @@ class RequestConfig(BaseModel):
     Advanced configuration for the model
     """
     split_type: SplitType
-    min_token: int
+    min_length_output: int
+    max_length_output: int

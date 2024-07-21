@@ -13,11 +13,9 @@ def get_llm(config: LLMConfig) -> Any:
             openai_api_key=config.api_key,
             model=config.model,
             temperature=config.temperature,
-            max_token=config.max_token
         )
     elif config.connection == LLMConnection.aws:
         return ChatBedrockConverse(
             model=config.model,
             temperature=config.temperature,
-            max_token=config.max_token
         )
